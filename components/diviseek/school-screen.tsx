@@ -65,7 +65,7 @@ export function SchoolScreen() {
   const filtered = articles.filter((a) => {
     const matchCat = cat === "全部" || a.category === cat
     const matchQuery = !query || a.title.includes(query) || a.author.includes(query)
-    return matchCat && matchQuery
+    return matchCat && matchQuery && !(cat === "全部" && heroArticle && a.id === heroArticle.id)
   })
 
   return (
@@ -108,16 +108,12 @@ export function SchoolScreen() {
         <SchoolEmpty />
       ) : (
         <>
-          {heroArticle && (
+          {cat === "全部" && heroArticle && (
             <button
               onClick={() => setReading(heroArticle)}
               className="group relative mt-5 block h-44 w-full overflow-hidden rounded-3xl text-left"
             >
-              <img
-                src={heroArticle.cover || "/placeholder.svg"}
-                alt={heroArticle.title}
-                className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-amber-500/20 transition-transform duration-500 group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/40 to-transparent" />
               <span className="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
                 <Sparkles className="size-3" /> 编辑精选
@@ -167,13 +163,14 @@ export function SchoolScreen() {
               {cat === "全部" ? "全部内容" : cat}
             </h3>
             <div className="grid grid-cols-2 gap-3">
-              {filtered.map((a) => (
+              {filtered.map((a, i) => (
                 <ArticleCard
                   key={a.id}
                   article={a}
                   bookmarked={!!marks[a.id]}
                   onToggleMark={() => toggleMark(a.id)}
                   onOpen={() => setReading(a)}
+                  index={i}
                 />
               ))}
             </div>
@@ -189,16 +186,31 @@ function ArticleCard({
   bookmarked,
   onToggleMark,
   onOpen,
+  index,
 }: {
   article: Article
   bookmarked: boolean
   onToggleMark: () => void
   onOpen: () => void
+  index?: number
 }) {
+  const gradients = [
+    "from-primary/25 to-blue-500/15",
+    "from-amber-500/25 to-orange-500/15",
+    "from-emerald-500/25 to-teal-500/15",
+    "from-rose-500/25 to-pink-500/15",
+    "from-violet-500/25 to-purple-500/15",
+    "from-cyan-500/25 to-sky-500/15",
+  ]
+  const grad = gradients[(index ?? 0) % gradients.length]
+
   return (
     <div className="overflow-hidden rounded-2xl border border-white/5 bg-card transition-transform hover:-translate-y-0.5">
-      <button onClick={onOpen} className="block aspect-video w-full overflow-hidden text-left">
-        <img src={article.cover || "/placeholder.svg"} alt={article.title} className="size-full object-cover" />
+      <button onClick={onOpen} className="relative block aspect-video w-full overflow-hidden text-left">
+        <div className={cn("absolute inset-0 bg-gradient-to-br", grad)} />
+        <div className="absolute inset-x-3 bottom-3">
+          <span className="line-clamp-2 text-xs font-semibold text-foreground/80">{article.title}</span>
+        </div>
       </button>
       <div className="p-3">
         <span className="text-[10px] font-medium text-primary">{article.category}</span>
