@@ -2,10 +2,11 @@
 
 import { useRef, useState, useEffect } from "react"
 import { Plus, ListFilter, Compass, Repeat, Check } from "lucide-react"
-import { holdings as initialHoldings, freqLabel, type Holding } from "@/lib/diviseek-data"
+import { holdings as initialHoldings, freqLabel, type Holding, type Frequency } from "@/lib/diviseek-data"
 import { TickerBadge, formatCNY } from "./shared"
 import { cn } from "@/lib/utils"
 import { getHoldings as fetchHoldings, createHolding, updateHolding } from "@/lib/api"
+import { searchStocks, type StockInfo } from "@/lib/stocks"
 
 type Sort = "yield" | "income" | "date"
 const sortLabels: Record<Sort, string> = {
@@ -40,16 +41,21 @@ export function HoldingsScreen({
   const [showAdd, setShowAdd] = useState(false)
 
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setList(initialHoldings)
+      setSummary({ annualIncome: 48520, monthlyAverage: 4043, holdingsCount: 8, averageYield: 3.8 })
+      return
+    }
     setLoading(true)
     fetchHoldings()
       .then((data) => {
-        if (data.holdings.length > 0) {
-          setList(data.holdings)
-          setSummary(data.summary)
-        }
+        setList(data.holdings)
+        setSummary(data.summary)
       })
-      .catch(() => {})
+      .catch(() => {
+        setList([])
+        setSummary({ annualIncome: 0, monthlyAverage: 0, holdingsCount: 0, averageYield: 0 })
+      })
       .finally(() => setLoading(false))
   }, [user])
 
@@ -135,29 +141,66 @@ function AddHoldingSheet({
   onClose: () => void
   onAdded: (h: Holding) => void
 }) {
-  const [ticker, setTicker] = useState("")
-  const [name, setName] = useState("")
+  const [query, setQuery] = useState("")
+  const [selected, setSelected] = useState<StockInfo | null>(null)
   const [shares, setShares] = useState("")
   const [yieldVal, setYieldVal] = useState("")
+  const [avgCost, setAvgCost] = useState("")
+  const [purchaseDate, setPurchaseDate] = useState("")
+  const [drip, setDrip] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [searchResults, setSearchResults] = useState<StockInfo[]>([])
+  const [showResults, setShowResults] = useState(false)
+
+  useEffect(() => {
+    if (selected) return
+    if (query.length >= 1) {
+      setSearchResults(searchStocks(query))
+      setShowResults(true)
+    } else {
+      setSearchResults([])
+      setShowResults(false)
+    }
+  }, [query, selected])
+
+  const selectStock = (stock: StockInfo) => {
+    setSelected(stock)
+    setQuery(`${stock.ticker} - ${stock.name}`)
+    setShowResults(false)
+    setYieldVal("")
+  }
+
+  const resetSelection = () => {
+    setSelected(null)
+    setQuery("")
+    setYieldVal("")
+    setShares("")
+    setAvgCost("")
+    setPurchaseDate("")
+    setDrip(false)
+  }
 
   const handleAdd = async () => {
-    if (!ticker || !name || !shares || !yieldVal) return
+    if (!selected || !shares || !yieldVal) return
     setLoading(true)
     try {
       const s = parseFloat(shares)
       const y = parseFloat(yieldVal)
+      const ac = avgCost ? parseFloat(avgCost) : null
       const annualIncome = Math.round(s * y * 10)
       const result = await createHolding({
-        ticker,
-        name,
+        ticker: selected.ticker,
+        name: selected.name,
         shares: s,
         yield: y,
-        frequency: "quarterly",
+        frequency: selected.frequency,
         nextExDate: "2026-08-01",
         annualIncome,
-        drip: false,
+        drip,
         color: "#64748b",
+        avgCost: ac,
+        purchaseDate: purchaseDate || null,
+        market: selected.market,
       })
       onAdded(result.holding)
     } catch {
@@ -168,24 +211,129 @@ function AddHoldingSheet({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-md rounded-t-3xl bg-[#0f172a] p-6 pb-10">
+      <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-3xl bg-[#0f172a] p-6 pb-10">
         <h2 className="mb-4 text-center text-base font-semibold">添加持仓</h2>
-        <div className="space-y-3">
-          <input placeholder="股票代码 (如 AAPL)" value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500/50" />
-          <input placeholder="公司名称" value={name} onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500/50" />
-          <div className="grid grid-cols-2 gap-3">
-            <input placeholder="股数" type="number" value={shares} onChange={(e) => setShares(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500/50" />
-            <input placeholder="收益率 (%)" type="number" step="0.1" value={yieldVal} onChange={(e) => setYieldVal(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500/50" />
+
+        {!selected ? (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">搜索股票代码或公司名称</p>
+            <div className="relative">
+              <input
+                placeholder="输入代码或名称，如 AAPL / 苹果"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                autoFocus
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500/50"
+              />
+              {showResults && searchResults.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-[#1e293b] shadow-xl">
+                  {searchResults.map((s) => (
+                    <li key={s.ticker}>
+                      <button
+                        onClick={() => selectStock(s)}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5"
+                      >
+                        <span className="text-xs font-bold text-primary">{s.ticker}</span>
+                        <span className="flex-1 truncate text-sm">{s.name}</span>
+                        <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-muted-foreground">
+                          {s.market}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
+              <TickerBadge ticker={selected.ticker} color="#64748b" className="size-10" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">{selected.ticker}</p>
+                <p className="text-xs text-muted-foreground truncate">{selected.name}</p>
+              </div>
+              <button onClick={resetSelection} className="text-xs text-primary">重新选择</button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-[11px] text-muted-foreground">股数 *</label>
+                <input
+                  placeholder="100"
+                  type="number"
+                  value={shares}
+                  onChange={(e) => setShares(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500/50"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] text-muted-foreground">股息率 (%) *</label>
+                <input
+                  placeholder="3.5"
+                  type="number"
+                  step="0.1"
+                  value={yieldVal}
+                  onChange={(e) => setYieldVal(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500/50"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-[11px] text-muted-foreground">平均成本 ($)</label>
+                <input
+                  placeholder="150.00"
+                  type="number"
+                  step="0.01"
+                  value={avgCost}
+                  onChange={(e) => setAvgCost(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500/50"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] text-muted-foreground">建仓时间</label>
+                <input
+                  type="date"
+                  value={purchaseDate}
+                  onChange={(e) => setPurchaseDate(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500/50 [color-scheme:dark]"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+              <span className="text-sm">股息再投资 (DRIP)</span>
+              <button
+                onClick={() => setDrip(!drip)}
+                role="switch"
+                aria-checked={drip}
+                className={cn(
+                  "relative h-6 w-11 rounded-full transition-colors",
+                  drip ? "bg-[color:var(--success)]" : "bg-white/15",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 flex size-5 items-center justify-center rounded-full bg-white transition-all",
+                    drip ? "left-[22px]" : "left-0.5",
+                  )}
+                >
+                  <Repeat className="size-3 text-[#0f172a]" />
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-5 flex gap-3">
           <button onClick={onClose} className="flex-1 rounded-xl border border-white/10 py-3 text-sm font-medium text-muted-foreground">取消</button>
-          <button onClick={handleAdd} disabled={loading}
-            className="flex-1 rounded-xl bg-amber-500 py-3 text-sm font-semibold text-[#0f172a] disabled:opacity-50">
+          <button
+            onClick={handleAdd}
+            disabled={loading || !selected || !shares || !yieldVal}
+            className="flex-1 rounded-xl bg-amber-500 py-3 text-sm font-semibold text-[#0f172a] disabled:opacity-50"
+          >
             {loading ? "添加中..." : "确认添加"}
           </button>
         </div>
@@ -278,6 +426,8 @@ function HoldingRow({ holding, onToggleDrip }: { holding: Holding; onToggleDrip:
           </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             {holding.shares} 股 · {freqLabel[holding.frequency]}派息
+            {holding.avgCost ? ` · 均价 $${holding.avgCost}` : ""}
+            {holding.purchaseDate ? ` · ${holding.purchaseDate.slice(5)}` : ""}
           </p>
         </div>
         <div className="text-right">

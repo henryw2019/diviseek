@@ -65,6 +65,9 @@ export async function createHolding(data: {
   annualIncome: number
   drip?: boolean
   color?: string
+  avgCost?: number | null
+  purchaseDate?: string | null
+  market?: string
 }) {
   return apiFetch("/api/holdings", {
     method: "POST",

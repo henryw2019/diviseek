@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { ticker, name, shares, yield: yieldVal, frequency, nextExDate, annualIncome, drip, color } = body
+    const { ticker, name, shares, yield: yieldVal, frequency, nextExDate, annualIncome, drip, color, avgCost, purchaseDate, market } = body
 
     if (!ticker || !name || shares == null || yieldVal == null || !frequency || !nextExDate || annualIncome == null) {
       return NextResponse.json({ success: false, error: "缺少必填字段" }, { status: 400 })
@@ -71,6 +71,9 @@ export async function POST(request: NextRequest) {
         annualIncome,
         drip: drip ?? false,
         color: color || "#64748b",
+        avgCost: avgCost ?? null,
+        purchaseDate: purchaseDate ?? null,
+        market: market || "US",
       },
     })
 

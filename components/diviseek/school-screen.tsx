@@ -246,7 +246,7 @@ function ArticleReader({
         <span className="text-xs text-muted-foreground">{article.category}</span>
       </header>
 
-      <div ref={ref} onScroll={onScroll} className="no-scrollbar flex-1 overflow-y-auto px-5 pb-32">
+      <div ref={ref} onScroll={onScroll} className="no-scrollbar flex-1 overflow-y-auto px-5 pb-48">
         <h1 className="text-2xl font-bold leading-tight text-balance">{article.title}</h1>
         <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
           <span className="flex size-6 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
@@ -282,7 +282,7 @@ function ArticleReader({
       </div>
 
       {/* Bottom bar */}
-      <div className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-w-md items-center gap-3 border-t border-white/5 bg-[#0f172a]/95 px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-3 backdrop-blur-xl">
+      <div className="fixed inset-x-0 bottom-16 z-40 mx-auto flex max-w-md items-center gap-3 border-t border-white/5 bg-[#0f172a]/95 px-5 pb-3 pt-3 backdrop-blur-xl">
         <button
           onClick={onToggleMark}
           className="flex size-11 items-center justify-center rounded-full bg-white/5"

@@ -10,6 +10,9 @@ export type Holding = {
   annualIncome: number
   drip: boolean
   color: string
+  avgCost?: number | null
+  purchaseDate?: string | null
+  market?: string
 }
 
 export const freqLabel: Record<Frequency, string> = {
