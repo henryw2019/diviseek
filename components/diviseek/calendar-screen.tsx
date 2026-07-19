@@ -3,14 +3,18 @@
 import { useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight, X, Repeat, Wallet } from "lucide-react"
 import { dividendEvents, type CalendarEvent } from "@/lib/diviseek-data"
-import { formatCNY } from "./shared"
+import { formatCurrency } from "./shared"
 import { cn } from "@/lib/utils"
 import { getCalendarEvents, getToken } from "@/lib/api"
+import { useSettings } from "@/lib/settings-context"
 
 const TODAY_ISO = "2026-07-13"
-const weekdayCN = ["日", "一", "二", "三", "四", "五", "六"]
+const weekdayCN_SUN = ["日", "一", "二", "三", "四", "五", "六"]
+const weekdayCN_MON = ["一", "二", "三", "四", "五", "六", "日"]
 
 export function CalendarScreen({ user }: { user?: any }) {
+  const { currency, calendarStart } = useSettings()
+  const weekdayCN = calendarStart === "monday" ? weekdayCN_MON : weekdayCN_SUN
   const [mode, setMode] = useState<"ex" | "pay">("ex")
   const [cursor, setCursor] = useState({ year: 2026, month: 6 })
   const [sheet, setSheet] = useState<CalendarEvent[] | null>(null)
@@ -43,7 +47,10 @@ export function CalendarScreen({ user }: { user?: any }) {
 
   const grid = useMemo(() => {
     const first = new Date(cursor.year, cursor.month, 1)
-    const startDay = first.getDay()
+    let startDay = first.getDay()
+    if (calendarStart === "monday") {
+      startDay = startDay === 0 ? 6 : startDay - 1
+    }
     const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate()
     const cells: ({ day: number; iso: string } | null)[] = []
     for (let i = 0; i < startDay; i++) cells.push(null)
@@ -52,7 +59,7 @@ export function CalendarScreen({ user }: { user?: any }) {
       cells.push({ day: d, iso })
     }
     return cells
-  }, [cursor])
+  }, [cursor, calendarStart])
 
   const monthName = `${cursor.year}年${cursor.month + 1}月`
 
@@ -149,7 +156,7 @@ export function CalendarScreen({ user }: { user?: any }) {
       </div>
 
       {sheet && (
-        <BottomSheet date={sheetDate} events={sheet} mode={mode} onClose={() => setSheet(null)} />
+        <BottomSheet date={sheetDate} events={sheet} mode={mode} onClose={() => setSheet(null)} currency={currency} />
       )}
     </div>
   )
@@ -160,11 +167,13 @@ function BottomSheet({
   events,
   mode,
   onClose,
+  currency,
 }: {
   date: string
   events: CalendarEvent[]
   mode: "ex" | "pay"
   onClose: () => void
+  currency: string
 }) {
   return (
     <div className="fixed inset-0 z-50 mx-auto flex max-w-md items-end justify-center">
@@ -201,7 +210,7 @@ function BottomSheet({
               <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
                 <Info label="每股" value={`¥${e.perShare}`} />
                 <Info label="持有" value={`${e.shares} 股`} />
-                <Info label="预计到账" value={formatCNY(e.total)} gold />
+                <Info label="预计到账" value={formatCurrency(e.total, currency)} gold />
                 <div>
                   <p className="text-[11px] text-muted-foreground">方式</p>
                   <p className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium">

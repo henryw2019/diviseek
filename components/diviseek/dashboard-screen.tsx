@@ -13,6 +13,7 @@ import { TickerBadge, formatCNY } from "./shared"
 import type { TabKey } from "./bottom-nav"
 import { cn } from "@/lib/utils"
 import { getHoldings as fetchHoldings } from "@/lib/api"
+import { useSettings, formatCurrency, calcAfterTax } from "@/lib/settings-context"
 
 const TODAY = new Date("2026-07-13")
 
@@ -37,6 +38,7 @@ export function DashboardScreen({
   user?: any
   onNavigate: (t: TabKey) => void
 }) {
+  const { currency, taxRate } = useSettings()
   const [realHoldings, setRealHoldings] = useState<Holding[]>([])
   const [summary, setSummary] = useState(mockSummary)
 
@@ -90,12 +92,17 @@ export function DashboardScreen({
         <div className="rounded-[20px] border border-white/5 bg-card/40 px-5 py-6">
           <p className="text-sm text-muted-foreground">年度股息收入</p>
           <p className="mt-1 gold-text-gradient text-5xl font-bold tracking-tight tabular-nums">
-            {formatCNY(annual)}
+            {formatCurrency(annual, currency)}
           </p>
           <div className="mt-3 flex items-center gap-3">
             <span className="text-sm text-muted-foreground">
-              月均 <span className="font-semibold text-foreground">{formatCNY(activeSummary.monthlyAverage)}</span>
+              月均 <span className="font-semibold text-foreground">{formatCurrency(activeSummary.monthlyAverage, currency)}</span>
             </span>
+            {taxRate > 0 && (
+              <span className="text-sm text-muted-foreground">
+                税后 <span className="font-semibold text-foreground">{formatCurrency(calcAfterTax(annual, taxRate), currency)}</span>
+              </span>
+            )}
           </div>
         </div>
       </section>
@@ -145,7 +152,7 @@ export function DashboardScreen({
           })}
         </div>
         {selected && (
-          <StripTooltip iso={selected} holdings={activeHoldings} />
+          <StripTooltip iso={selected} holdings={activeHoldings} currency={currency} />
         )}
       </section>
 
@@ -180,7 +187,7 @@ export function DashboardScreen({
                     {h.shares} 股 · 下次 {h.nextExDate.slice(5)}
                   </p>
                   <p className="text-[11px] text-muted-foreground tabular-nums">
-                    年 {formatCNY(h.annualIncome)}
+                    年 {formatCurrency(h.annualIncome, currency)}
                   </p>
                 </div>
               </div>
@@ -192,7 +199,7 @@ export function DashboardScreen({
   )
 }
 
-function StripTooltip({ iso, holdings }: { iso: string; holdings: Holding[] }) {
+function StripTooltip({ iso, holdings, currency }: { iso: string; holdings: Holding[]; currency: string }) {
   const h = holdings.find((h) => h.nextExDate === iso)
   if (!h) return null
   return (
@@ -205,7 +212,7 @@ function StripTooltip({ iso, holdings }: { iso: string; holdings: Holding[] }) {
         <span className="text-xs text-muted-foreground">{iso}</span>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        年 {formatCNY(h.annualIncome)}
+        年 {formatCurrency(h.annualIncome, currency)}
       </p>
     </div>
   )

@@ -6,6 +6,7 @@ import { holdings as initialHoldings, freqLabel, type Holding, type Frequency } 
 import { TickerBadge, formatCNY } from "./shared"
 import { cn } from "@/lib/utils"
 import { getHoldings as fetchHoldings, updateHolding } from "@/lib/api"
+import { useSettings, formatCurrency } from "@/lib/settings-context"
 
 type Sort = "yield" | "income" | "date"
 const sortLabels: Record<Sort, string> = {
@@ -30,6 +31,7 @@ export function HoldingsScreen({
   requireAuth?: () => boolean
   onAddHolding?: () => void
 }) {
+  const { currency } = useSettings()
   const [list, setList] = useState<Holding[]>(initialHoldings)
   const [summary, setSummary] = useState<HoldingSummary>({
     annualIncome: 48520,
@@ -87,7 +89,7 @@ export function HoldingsScreen({
         <div className="mt-3 grid grid-cols-3 gap-2">
           <Stat label="持仓数" value={`${summary.holdingsCount}`} />
           <Stat label="平均收益率" value={`${summary.averageYield}%`} gold />
-          <Stat label="总年股息" value={formatCNY(summary.annualIncome)} />
+          <Stat label="总年股息" value={formatCurrency(summary.annualIncome, currency)} />
         </div>
         <div className="mt-3 flex justify-end">
           <button
@@ -109,7 +111,7 @@ export function HoldingsScreen({
       ) : (
         <ul className="flex flex-col gap-2.5 px-5 py-4">
           {sorted.map((h) => (
-            <HoldingRow key={h.ticker} holding={h} onToggleDrip={() => toggleDrip(h.ticker)} />
+            <HoldingRow key={h.ticker} holding={h} onToggleDrip={() => toggleDrip(h.ticker)} currency={currency} />
           ))}
         </ul>
       )}
@@ -135,7 +137,7 @@ function Stat({ label, value, gold }: { label: string; value: string; gold?: boo
   )
 }
 
-function HoldingRow({ holding, onToggleDrip }: { holding: Holding; onToggleDrip: () => void }) {
+function HoldingRow({ holding, onToggleDrip, currency }: { holding: Holding; onToggleDrip: () => void; currency: string }) {
   const [dx, setDx] = useState(0)
   const [open, setOpen] = useState(false)
   const startX = useRef(0)
@@ -217,7 +219,7 @@ function HoldingRow({ holding, onToggleDrip }: { holding: Holding; onToggleDrip:
         <div className="text-right">
           <p className="text-sm font-bold text-primary tabular-nums">{holding.yield}%</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">除息 {holding.nextExDate.slice(5)}</p>
-          <p className="text-[11px] text-muted-foreground tabular-nums">年 {formatCNY(holding.annualIncome)}</p>
+          <p className="text-[11px] text-muted-foreground tabular-nums">年 {formatCurrency(holding.annualIncome, currency)}</p>
         </div>
       </div>
       {!open && dx === 0 && (

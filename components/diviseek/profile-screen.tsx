@@ -22,10 +22,12 @@ export function ProfileScreen({
   user,
   onLogout,
   onLoginRequired,
+  onSettingsChange,
 }: {
   user?: { id: string; phone: string; nickname?: string | null }
   onLogout?: () => void
   onLoginRequired?: () => void
+  onSettingsChange?: (patch: Record<string, any>) => void
 }) {
   const [settings, setSettings] = useState<any>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -39,6 +41,7 @@ export function ProfileScreen({
 
   const save = (patch: Record<string, any>) => {
     setSettings((s: any) => ({ ...s, ...patch }))
+    onSettingsChange?.(patch)
     updateSettings(patch).catch(() => {})
   }
 

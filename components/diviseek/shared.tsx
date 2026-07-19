@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { useSettings, formatCurrency } from "@/lib/settings-context"
+
+export { formatCurrency }
+
+export function formatCNY(n: number) {
+  return formatCurrency(n)
+}
 
 export function TickerBadge({
   ticker,
@@ -46,10 +53,6 @@ export function useCountUp(target: number, duration = 1100) {
   }, [target, duration])
 
   return value
-}
-
-export function formatCNY(n: number) {
-  return "¥" + n.toLocaleString("zh-CN")
 }
 
 export function ProgressRing({
