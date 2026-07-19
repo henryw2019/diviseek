@@ -1,39 +1,71 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Compass, TrendingUp, ChevronRight } from "lucide-react"
+import { Compass, ChevronRight } from "lucide-react"
 import {
-  holdings,
-  portfolioSummary,
+  holdings as mockHoldings,
+  portfolioSummary as mockSummary,
   dividendEvents,
   quotes,
+  type Holding,
 } from "@/lib/diviseek-data"
-import { TickerBadge, useCountUp, formatCNY } from "./shared"
+import { TickerBadge, formatCNY } from "./shared"
 import type { TabKey } from "./bottom-nav"
 import { cn } from "@/lib/utils"
+import { getHoldings as fetchHoldings } from "@/lib/api"
 
 const TODAY = new Date("2026-07-13")
 
-function buildStrip() {
+function buildStrip(exDates: string[]) {
   const days: { date: Date; iso: string; hasDiv: boolean }[] = []
-  const exDates = new Set(dividendEvents.map((e) => e.date))
+  const exDateSet = new Set(exDates)
   for (let i = 0; i < 30; i++) {
     const d = new Date(TODAY)
     d.setDate(TODAY.getDate() + i)
     const iso = d.toISOString().slice(0, 10)
-    days.push({ date: d, iso, hasDiv: exDates.has(iso) })
+    days.push({ date: d, iso, hasDiv: exDateSet.has(iso) })
   }
   return days
 }
 
 const weekdayCN = ["日", "一", "二", "三", "四", "五", "六"]
 
-export function DashboardScreen({ onNavigate }: { onNavigate: (t: TabKey) => void }) {
-  const annual = useCountUp(portfolioSummary.annualIncome)
-  const strip = useMemo(buildStrip, [])
+export function DashboardScreen({
+  user,
+  onNavigate,
+}: {
+  user?: any
+  onNavigate: (t: TabKey) => void
+}) {
+  const [realHoldings, setRealHoldings] = useState<Holding[]>([])
+  const [summary, setSummary] = useState(mockSummary)
+
+  useEffect(() => {
+    if (!user) {
+      setRealHoldings([])
+      setSummary(mockSummary)
+      return
+    }
+    fetchHoldings()
+      .then((data) => {
+        setRealHoldings(data.holdings)
+        setSummary(data.summary)
+      })
+      .catch(() => {
+        setRealHoldings([])
+        setSummary({ annualIncome: 0, monthlyAverage: 0, holdingsCount: 0, averageYield: 0 })
+      })
+  }, [user])
+
+  const activeHoldings = user ? realHoldings : mockHoldings
+  const activeSummary = user ? summary : mockSummary
+
+  const annual = activeSummary.annualIncome
+  const exDates = useMemo(() => activeHoldings.map((h) => h.nextExDate), [activeHoldings])
+  const strip = useMemo(() => buildStrip(exDates), [exDates])
   const [selected, setSelected] = useState<string | null>(null)
 
-  const topHoldings = [...holdings].sort((a, b) => b.annualIncome - a.annualIncome).slice(0, 4)
+  const topHoldings = [...activeHoldings].sort((a, b) => b.annualIncome - a.annualIncome).slice(0, 4)
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
@@ -62,11 +94,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (t: TabKey) => voi
           </p>
           <div className="mt-3 flex items-center gap-3">
             <span className="text-sm text-muted-foreground">
-              月均 <span className="font-semibold text-foreground">{formatCNY(portfolioSummary.monthlyAverage)}</span>
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--success)]/15 px-2 py-0.5 text-[11px] font-medium text-[color:var(--success)]">
-              <TrendingUp className="size-3" />
-              +8.4%
+              月均 <span className="font-semibold text-foreground">{formatCNY(activeSummary.monthlyAverage)}</span>
             </span>
           </div>
         </div>
@@ -117,7 +145,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (t: TabKey) => voi
           })}
         </div>
         {selected && (
-          <StripTooltip iso={selected} />
+          <StripTooltip iso={selected} holdings={activeHoldings} />
         )}
       </section>
 
@@ -132,7 +160,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (t: TabKey) => voi
             onClick={() => onNavigate("holdings")}
             className="inline-flex items-center text-xs text-muted-foreground"
           >
-            全部 {portfolioSummary.holdingsCount} 只 <ChevronRight className="size-3.5" />
+            全部 {activeSummary.holdingsCount} 只 <ChevronRight className="size-3.5" />
           </button>
         </div>
         <div className="flex flex-col gap-3">
@@ -164,21 +192,20 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (t: TabKey) => voi
   )
 }
 
-function StripTooltip({ iso }: { iso: string }) {
-  const evt = dividendEvents.find((e) => e.date === iso)
-  if (!evt) return null
+function StripTooltip({ iso, holdings }: { iso: string; holdings: Holding[] }) {
+  const h = holdings.find((h) => h.nextExDate === iso)
+  if (!h) return null
   return (
     <div className="mt-3 animate-[marquee-up_0.3s_ease-out] rounded-2xl border border-primary/25 bg-card p-3.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-primary">{evt.ticker}</span>
-          <span className="text-sm text-foreground">{evt.name}</span>
+          <span className="text-sm font-semibold text-primary">{h.ticker}</span>
+          <span className="text-sm text-foreground">{h.name}</span>
         </div>
-        <span className="text-xs text-muted-foreground">{evt.date}</span>
+        <span className="text-xs text-muted-foreground">{iso}</span>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        每股 ¥{evt.perShare} · 预计到账{" "}
-        <span className="font-semibold text-foreground">{formatCNY(evt.total)}</span>
+        年 {formatCNY(h.annualIncome)}
       </p>
     </div>
   )

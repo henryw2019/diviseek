@@ -51,7 +51,7 @@ export default function Page() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-background">
       <main className="flex-1 pb-24">
-        {tab === "home" && <DashboardScreen onNavigate={setTab} />}
+        {tab === "home" && <DashboardScreen user={user} onNavigate={setTab} />}
         {tab === "holdings" && <HoldingsScreen user={user} requireAuth={requireAuth} />}
         {tab === "calendar" && <CalendarScreen />}
         {tab === "school" && <SchoolScreen />}
