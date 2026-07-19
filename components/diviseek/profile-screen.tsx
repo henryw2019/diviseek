@@ -20,9 +20,11 @@ import { cn } from "@/lib/utils"
 export function ProfileScreen({
   user,
   onLogout,
+  onLoginRequired,
 }: {
   user?: { id: string; phone: string; nickname?: string | null }
   onLogout?: () => void
+  onLoginRequired?: () => void
 }) {
   return (
     <div className="min-h-screen px-5 pt-8 pb-6">
@@ -31,12 +33,20 @@ export function ProfileScreen({
         <div className="flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-primary/5 ring-1 ring-primary/30">
           <Compass className="size-8 text-primary" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-lg font-bold">{user?.nickname || "寻息者"}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {user?.phone ? `${user.phone.slice(0, 3)}****${user.phone.slice(7)}` : "加入寻息第 128 天"}
+            {user?.phone ? `${user.phone.slice(0, 3)}****${user.phone.slice(7)}` : "登录后数据将同步保存"}
           </p>
         </div>
+        {!user && onLoginRequired && (
+          <button
+            onClick={onLoginRequired}
+            className="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-[#0f172a]"
+          >
+            登录
+          </button>
+        )}
       </header>
 
       {/* Reading profile card */}

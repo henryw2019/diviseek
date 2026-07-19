@@ -7,13 +7,14 @@ import { HoldingsScreen } from "@/components/diviseek/holdings-screen"
 import { CalendarScreen } from "@/components/diviseek/calendar-screen"
 import { SchoolScreen } from "@/components/diviseek/school-screen"
 import { ProfileScreen } from "@/components/diviseek/profile-screen"
-import { AuthScreen } from "@/components/diviseek/auth-screen"
+import { AuthPrompt } from "@/components/diviseek/auth-prompt"
 import { getMe, removeToken } from "@/lib/api"
 
 export default function Page() {
   const [tab, setTab] = useState<TabKey>("home")
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [showAuth, setShowAuth] = useState(false)
 
   useEffect(() => {
     getMe()
@@ -28,6 +29,14 @@ export default function Page() {
     setTab("home")
   }
 
+  const requireAuth = () => {
+    if (!user) {
+      setShowAuth(true)
+      return false
+    }
+    return true
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0f172a]">
@@ -39,20 +48,19 @@ export default function Page() {
     )
   }
 
-  if (!user) {
-    return <AuthScreen onLogin={setUser} />
-  }
-
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-background">
       <main className="flex-1 pb-24">
         {tab === "home" && <DashboardScreen onNavigate={setTab} />}
-        {tab === "holdings" && <HoldingsScreen />}
+        {tab === "holdings" && <HoldingsScreen user={user} requireAuth={requireAuth} />}
         {tab === "calendar" && <CalendarScreen />}
         {tab === "school" && <SchoolScreen />}
-        {tab === "profile" && <ProfileScreen user={user} onLogout={handleLogout} />}
+        {tab === "profile" && (
+          <ProfileScreen user={user} onLogout={user ? handleLogout : undefined} onLoginRequired={() => setShowAuth(true)} />
+        )}
       </main>
       <BottomNav active={tab} onChange={setTab} />
+      <AuthPrompt open={showAuth} onClose={() => setShowAuth(false)} onSuccess={setUser} />
     </div>
   )
 }

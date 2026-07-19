@@ -21,7 +21,13 @@ type HoldingSummary = {
   averageYield: number
 }
 
-export function HoldingsScreen() {
+export function HoldingsScreen({
+  user,
+  requireAuth,
+}: {
+  user?: any
+  requireAuth?: () => boolean
+}) {
   const [list, setList] = useState<Holding[]>(initialHoldings)
   const [summary, setSummary] = useState<HoldingSummary>({
     annualIncome: 48520,
@@ -30,18 +36,22 @@ export function HoldingsScreen() {
     averageYield: 3.8,
   })
   const [sort, setSort] = useState<Sort>("yield")
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
 
   useEffect(() => {
+    if (!user) return
+    setLoading(true)
     fetchHoldings()
       .then((data) => {
-        setList(data.holdings)
-        setSummary(data.summary)
+        if (data.holdings.length > 0) {
+          setList(data.holdings)
+          setSummary(data.summary)
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }, [user])
 
   const sorted = [...list].sort((a, b) => {
     if (sort === "yield") return b.yield - a.yield
@@ -95,7 +105,10 @@ export function HoldingsScreen() {
 
       {/* FAB */}
       <button
-        onClick={() => setShowAdd(!showAdd)}
+        onClick={() => {
+          if (requireAuth && !requireAuth()) return
+          setShowAdd(!showAdd)
+        }}
         aria-label="添加持仓"
         className="fixed bottom-24 right-5 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-95"
       >
