@@ -1,29 +1,45 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight, X, Repeat, Wallet } from "lucide-react"
 import { dividendEvents, type CalendarEvent } from "@/lib/diviseek-data"
 import { formatCNY } from "./shared"
 import { cn } from "@/lib/utils"
+import { getCalendarEvents, getToken } from "@/lib/api"
 
 const TODAY_ISO = "2026-07-13"
 const weekdayCN = ["日", "一", "二", "三", "四", "五", "六"]
 
-export function CalendarScreen() {
+export function CalendarScreen({ user }: { user?: any }) {
   const [mode, setMode] = useState<"ex" | "pay">("ex")
-  const [cursor, setCursor] = useState({ year: 2026, month: 6 }) // month 0-indexed (6 = July)
+  const [cursor, setCursor] = useState({ year: 2026, month: 6 })
   const [sheet, setSheet] = useState<CalendarEvent[] | null>(null)
   const [sheetDate, setSheetDate] = useState<string>("")
+  const [realEvents, setRealEvents] = useState<CalendarEvent[]>([])
+
+  useEffect(() => {
+    if (!user) {
+      setRealEvents([])
+      return
+    }
+    const token = getToken()
+    if (!token) return
+    getCalendarEvents()
+      .then((data) => setRealEvents(data.events))
+      .catch(() => setRealEvents([]))
+  }, [user])
+
+  const activeEvents = user && realEvents.length > 0 ? realEvents : dividendEvents
 
   const eventMap = useMemo(() => {
     const m = new Map<string, CalendarEvent[]>()
-    for (const e of dividendEvents) {
+    for (const e of activeEvents) {
       const arr = m.get(e.date) ?? []
       arr.push(e)
       m.set(e.date, arr)
     }
     return m
-  }, [])
+  }, [activeEvents])
 
   const grid = useMemo(() => {
     const first = new Date(cursor.year, cursor.month, 1)
@@ -61,7 +77,6 @@ export function CalendarScreen() {
     <div className="min-h-screen px-5 pt-8">
       <h1 className="text-lg font-bold">股息日历</h1>
 
-      {/* Mode toggle */}
       <div className="mt-4 flex rounded-full border border-white/10 bg-card p-1">
         {(["ex", "pay"] as const).map((m) => (
           <button
@@ -77,7 +92,6 @@ export function CalendarScreen() {
         ))}
       </div>
 
-      {/* Month navigator */}
       <div className="mt-5 flex items-center justify-between">
         <button onClick={() => shift(-1)} className="flex size-9 items-center justify-center rounded-full bg-white/5">
           <ChevronLeft className="size-5" />
@@ -88,7 +102,6 @@ export function CalendarScreen() {
         </button>
       </div>
 
-      {/* Weekday header */}
       <div className="mt-4 grid grid-cols-7 gap-1">
         {weekdayCN.map((w) => (
           <div key={w} className="py-1 text-center text-[11px] text-muted-foreground">
@@ -97,7 +110,6 @@ export function CalendarScreen() {
         ))}
       </div>
 
-      {/* Grid */}
       <div className="mt-1 grid grid-cols-7 gap-1">
         {grid.map((cell, i) => {
           if (!cell) return <div key={`e${i}`} />
@@ -127,7 +139,6 @@ export function CalendarScreen() {
         })}
       </div>
 
-      {/* Legend */}
       <div className="mt-5 flex items-center justify-center gap-5 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-primary" /> 已确认派息
@@ -137,7 +148,6 @@ export function CalendarScreen() {
         </span>
       </div>
 
-      {/* Bottom sheet */}
       {sheet && (
         <BottomSheet date={sheetDate} events={sheet} mode={mode} onClose={() => setSheet(null)} />
       )}

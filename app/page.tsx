@@ -76,7 +76,7 @@ export default function Page() {
             onAddHolding={() => setShowAddHolding(true)}
           />
         )}
-        {tab === "calendar" && <CalendarScreen />}
+        {tab === "calendar" && <CalendarScreen user={user} />}
         {tab === "school" && <SchoolScreen />}
         {tab === "profile" && (
           <ProfileScreen user={user} onLogout={user ? handleLogout : undefined} onLoginRequired={() => setShowAuth(true)} />

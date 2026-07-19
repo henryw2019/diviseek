@@ -8,13 +8,29 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  phone     String   @unique
+  id        String        @id @default(cuid())
+  phone     String        @unique
   password  String
   nickname  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
   holdings  Holding[]
+  settings  UserSettings?
+}
+
+model UserSettings {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  currency          String  @default("CNY")
+  taxRate           Float   @default(20)
+  theme             String  @default("dark")
+  calendarStart     String  @default("sunday")
+  notifyExDate      Boolean @default(true)
+  notifyDividendPay Boolean @default(true)
+  notifyArticle     Boolean @default(false)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Holding {
@@ -37,4 +53,19 @@ model Holding {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  title       String
+  category    String
+  cover       String   @default("")
+  author      String
+  readCount   Int      @default(0)
+  readMinutes Int      @default(5)
+  excerpt     String
+  content     String
+  isHero      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

@@ -87,3 +87,26 @@ export async function deleteHolding(id: string) {
     method: "DELETE",
   })
 }
+
+export async function getCalendarEvents() {
+  return apiFetch("/api/calendar")
+}
+
+export async function getSettings() {
+  return apiFetch("/api/settings")
+}
+
+export async function updateSettings(data: Record<string, any>) {
+  return apiFetch("/api/settings", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function getArticles(category?: string, search?: string) {
+  const params = new URLSearchParams()
+  if (category && category !== "全部") params.set("category", category)
+  if (search) params.set("search", search)
+  const qs = params.toString()
+  return apiFetch(`/api/articles${qs ? `?${qs}` : ""}`)
+}
