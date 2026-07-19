@@ -1,15 +1,47 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { BottomNav, type TabKey } from "@/components/diviseek/bottom-nav"
 import { DashboardScreen } from "@/components/diviseek/dashboard-screen"
 import { HoldingsScreen } from "@/components/diviseek/holdings-screen"
 import { CalendarScreen } from "@/components/diviseek/calendar-screen"
 import { SchoolScreen } from "@/components/diviseek/school-screen"
 import { ProfileScreen } from "@/components/diviseek/profile-screen"
+import { AuthScreen } from "@/components/diviseek/auth-screen"
+import { getMe, removeToken } from "@/lib/api"
 
 export default function Page() {
   const [tab, setTab] = useState<TabKey>("home")
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getMe()
+      .then((data) => setUser(data.user))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleLogout = () => {
+    removeToken()
+    setUser(null)
+    setTab("home")
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0f172a]">
+        <div className="text-center">
+          <p className="text-2xl font-bold text-amber-500">寻息</p>
+          <p className="mt-1 text-sm text-slate-400">加载中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <AuthScreen onLogin={setUser} />
+  }
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-background">
@@ -18,7 +50,7 @@ export default function Page() {
         {tab === "holdings" && <HoldingsScreen />}
         {tab === "calendar" && <CalendarScreen />}
         {tab === "school" && <SchoolScreen />}
-        {tab === "profile" && <ProfileScreen />}
+        {tab === "profile" && <ProfileScreen user={user} onLogout={handleLogout} />}
       </main>
       <BottomNav active={tab} onChange={setTab} />
     </div>

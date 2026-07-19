@@ -17,7 +17,13 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function ProfileScreen() {
+export function ProfileScreen({
+  user,
+  onLogout,
+}: {
+  user?: { id: string; phone: string; nickname?: string | null }
+  onLogout?: () => void
+}) {
   return (
     <div className="min-h-screen px-5 pt-8 pb-6">
       {/* Top user */}
@@ -26,8 +32,10 @@ export function ProfileScreen() {
           <Compass className="size-8 text-primary" />
         </div>
         <div>
-          <h1 className="text-lg font-bold">寻息者</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">加入寻息第 128 天</p>
+          <h1 className="text-lg font-bold">{user?.nickname || "寻息者"}</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {user?.phone ? `${user.phone.slice(0, 3)}****${user.phone.slice(7)}` : "加入寻息第 128 天"}
+          </p>
         </div>
       </header>
 
@@ -72,6 +80,15 @@ export function ProfileScreen() {
       </Section>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">DiviSeek 寻息 · v1.0.0</p>
+
+      {onLogout && (
+        <button
+          onClick={onLogout}
+          className="mt-4 w-full rounded-2xl border border-red-500/20 bg-red-500/5 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10"
+        >
+          退出登录
+        </button>
+      )}
     </div>
   )
 }
