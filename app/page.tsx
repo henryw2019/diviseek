@@ -8,6 +8,7 @@ import { CalendarScreen } from "@/components/diviseek/calendar-screen"
 import { SchoolScreen } from "@/components/diviseek/school-screen"
 import { ProfileScreen } from "@/components/diviseek/profile-screen"
 import { AuthPrompt } from "@/components/diviseek/auth-prompt"
+import { AddHoldingScreen } from "@/components/diviseek/add-holding-screen"
 import { getMe, removeToken } from "@/lib/api"
 
 export default function Page() {
@@ -15,6 +16,8 @@ export default function Page() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
+  const [showAddHolding, setShowAddHolding] = useState(false)
+  const [addHoldingKey, setAddHoldingKey] = useState(0)
 
   useEffect(() => {
     getMe()
@@ -48,11 +51,31 @@ export default function Page() {
     )
   }
 
+  if (showAddHolding) {
+    return (
+      <AddHoldingScreen
+        key={addHoldingKey}
+        onBack={() => setShowAddHolding(false)}
+        onAdded={() => {
+          setShowAddHolding(false)
+          setAddHoldingKey((k) => k + 1)
+          setTab("holdings")
+        }}
+      />
+    )
+  }
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-background">
       <main className="flex-1 pb-24">
         {tab === "home" && <DashboardScreen user={user} onNavigate={setTab} />}
-        {tab === "holdings" && <HoldingsScreen user={user} requireAuth={requireAuth} />}
+        {tab === "holdings" && (
+          <HoldingsScreen
+            user={user}
+            requireAuth={requireAuth}
+            onAddHolding={() => setShowAddHolding(true)}
+          />
+        )}
         {tab === "calendar" && <CalendarScreen />}
         {tab === "school" && <SchoolScreen />}
         {tab === "profile" && (
