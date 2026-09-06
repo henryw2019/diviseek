@@ -68,12 +68,7 @@ jobs:
           if [ "$OPEN" -eq 0 ]; then
             gh issue create --repo "$GITHUB_REPOSITORY" --label watchdog \
               --title "⚠️ diviseek.com 巡检告警 $(date -u +%F)" \
-              --body "巡检失败，请检查：
-- 主站 HTTPS: ${{ steps.main.outputs.main_http }}
-- ACME 放行: ${{ steps.acme.outputs.acme_http }}
-- 源站证书剩余: ${{ steps.cert.outputs.cert_days_left }} 天
-
-日志: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+              --body $'巡检失败，请检查：\n- 主站 HTTPS: ${{ steps.main.outputs.main_http }}\n- ACME 放行: ${{ steps.acme.outputs.acme_http }}\n- 源站证书剩余: ${{ steps.cert.outputs.cert_days_left }} 天\n\n日志: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID' \
               || echo "::warning::无法创建 Issue（token 只读），请查看 Actions 面板"
           else
             echo "已有未关闭告警 Issue，跳过重复创建"
