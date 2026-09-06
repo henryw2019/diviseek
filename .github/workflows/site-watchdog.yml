@@ -1,0 +1,80 @@
+name: diviseek-site-watchdog
+
+on:
+  schedule:
+    # 每天 09:00 UTC = 17:00 北京时间（A股收盘后）
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 主站可用性（经 Cloudflare 全链路）
+        id: main
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://diviseek.com/)
+          echo "main_http=$code" >> "$GITHUB_OUTPUT"
+          echo "主站 HTTPS: $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::diviseek.com https 返回 $code（期望 200，可能 525/代理异常）"
+            exit 1
+          fi
+
+      - name: ACME 验证路径放行（禁止 301 截断）
+        id: acme
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "http://diviseek.com/.well-known/acme-challenge/watchdog-token")
+          echo "acme_http=$code" >> "$GITHUB_OUTPUT"
+          echo "ACME http 路径: $code"
+          if [ "$code" = "301" ] || [ "$code" = "302" ]; then
+            echo "::error::ACME 路径被重定向($code)，证书续期将失败！"
+            exit 1
+          fi
+
+      - name: Vercel 源站证书到期检查（续期风险面）
+        id: cert
+        run: |
+          not_after=""
+          for ip in 216.198.79.1 64.29.17.1 216.198.79.65 64.29.17.65; do
+            na=$(timeout 25 bash -c "echo | openssl s_client \\
+              -connect $ip:443 -servername diviseek.com \\
+              2>/dev/null | openssl x509 -noout -enddate 2>/dev/null" | cut -d= -f2)
+            if [ -n "$na" ]; then not_after="$na"; break; fi
+          done
+          if [ -z "$not_after" ]; then
+            echo "::error::无法读取 Vercel 源站证书（可能握手失败=525 复现）"
+            exit 1
+          fi
+          days=$(( ( $(date -d "$not_after" +%s) - $(date +%s) ) / 86400 ))
+          echo "cert_days_left=$days" >> "$GITHUB_OUTPUT"
+          echo "源站证书有效期剩余: $days 天"
+          if [ "$days" -lt 14 ]; then
+            echo "::error::源站证书 $days 天后到期，续期异常！"
+            exit 1
+          fi
+
+      - name: 告警（失败时建 GitHub Issue）
+        if: failure()
+        run: |
+          # 公开仓库的 schedule 触发可能只有只读 token，若建 issue 失败，
+          # workflow 失败本身在 Actions 面板即为告警信号。
+          OPEN=$(gh issue list --repo "$GITHUB_REPOSITORY" --label watchdog --state open --json number -q 'length' 2>/dev/null || echo 0)
+          if [ "$OPEN" -eq 0 ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --label watchdog \
+              --title "⚠️ diviseek.com 巡检告警 $(date -u +%F)" \
+              --body "巡检失败，请检查：
+- 主站 HTTPS: ${{ steps.main.outputs.main_http }}
+- ACME 放行: ${{ steps.acme.outputs.acme_http }}
+- 源站证书剩余: ${{ steps.cert.outputs.cert_days_left }} 天
+
+日志: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+              || echo "::warning::无法创建 Issue（token 只读），请查看 Actions 面板"
+          else
+            echo "已有未关闭告警 Issue，跳过重复创建"
+          fi
