@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const geist = localFont({
@@ -43,6 +44,7 @@ export default function RootLayout({
     <html lang="zh-CN" className={`${geist.variable} ${notoSerif.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
+        <Analytics />
       </body>
     </html>
   )
