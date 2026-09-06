@@ -28,6 +28,12 @@
   --color-gold-soft: var(--gold-soft);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-nav-bg: var(--nav-bg);
+  --color-border-subtle: var(--border-subtle);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-toggle-off: var(--toggle-off);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -66,6 +72,13 @@
   --gold-soft: #fbbf24;
   --surface: #1e293b;
   --surface-2: #334155;
+  --nav-bg: rgba(15, 23, 42, 0.9);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --surface-subtle: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.1);
+  --surface-active: rgba(255, 255, 255, 0.15);
+  --toggle-off: #475569;
+  --toggle-thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   --radius: 0.75rem;
 }
 
@@ -131,4 +144,11 @@
   --gold-soft: #f59e0b;
   --surface: #f1f5f9;
   --surface-2: #e2e8f0;
+  --nav-bg: rgba(248, 250, 252, 1);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --surface-subtle: rgba(0, 0, 0, 0.04);
+  --surface-hover: rgba(0, 0, 0, 0.07);
+  --surface-active: rgba(0, 0, 0, 0.12);
+  --toggle-off: #94a3b8;
+  --toggle-thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }

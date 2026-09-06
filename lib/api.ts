@@ -23,7 +23,10 @@ async function apiFetch(url: string, options: RequestInit = {}): Promise<any> {
     headers["Authorization"] = `Bearer ${token}`
   }
 
-  const res = await fetch(url, { ...options, headers })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15000)
+  const res = await fetch(url, { ...options, headers, signal: controller.signal })
+  clearTimeout(timeoutId)
   const data = await res.json()
 
   if (!data.success) {
@@ -109,4 +112,52 @@ export async function getArticles(category?: string, search?: string) {
   if (search) params.set("search", search)
   const qs = params.toString()
   return apiFetch(`/api/articles${qs ? `?${qs}` : ""}`)
+}
+
+export async function getReadingStats() {
+  return apiFetch("/api/reading")
+}
+
+export async function saveReadingProgress(articleId: string, progress: number, completed: boolean) {
+  return apiFetch("/api/reading", {
+    method: "POST",
+    body: JSON.stringify({ articleId, progress, completed }),
+  })
+}
+
+export async function getBookmarks() {
+  return apiFetch("/api/bookmarks")
+}
+
+export async function toggleBookmark(articleId: string) {
+  return apiFetch("/api/bookmarks", {
+    method: "POST",
+    body: JSON.stringify({ articleId }),
+  })
+}
+
+export async function getAchievements() {
+  return apiFetch("/api/achievements")
+}
+
+export async function resetPassword(phone: string, newPassword: string) {
+  return apiFetch("/api/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ phone, newPassword }),
+  })
+}
+
+export async function searchStocksApi(q: string, market?: string) {
+  const params = new URLSearchParams()
+  if (q) params.set("q", q)
+  if (market) params.set("market", market)
+  return apiFetch(`/api/stocks?${params}`)
+}
+
+export async function getStockDetail(ticker: string) {
+  return apiFetch(`/api/stocks/${ticker.toUpperCase()}`)
+}
+
+export async function getStockPrices(ticker: string) {
+  return apiFetch(`/api/stocks/${ticker.toUpperCase()}/prices`)
 }

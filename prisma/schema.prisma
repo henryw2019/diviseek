@@ -7,6 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Stock {
+  id               String            @id @default(cuid())
+  ticker           String            @unique
+  name             String
+  market           String            @default("US")
+  sector           String?
+  industry         String?
+  currency         String            @default("USD")
+  price            Float?
+  dividendYield    Float?
+  frequency        String?
+  dividendPerShare Float?
+  exDate           String?
+  payDate          String?
+  divGrowth1y      Float?
+  divGrowth3y      Float?
+  divGrowth5y      Float?
+  divYears         Int?
+  payoutRatio      Float?
+  marketCap        Float?
+  peRatio          Float?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  holdings         Holding[]
+  dividendHistory  DividendHistory[]
+  priceHistory     PriceHistory[]
+}
+
 model User {
   id        String        @id @default(cuid())
   phone     String        @unique
@@ -16,6 +44,8 @@ model User {
   updatedAt DateTime      @updatedAt
   holdings  Holding[]
   settings  UserSettings?
+  readings  UserReading[]
+  bookmarks UserBookmark[]
 }
 
 model UserSettings {
@@ -31,6 +61,33 @@ model UserSettings {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model DividendHistory {
+  id       String @id @default(cuid())
+  ticker   String
+  exDate   String
+  payDate  String?
+  amount   Float
+  type     String @default("regular")
+  currency String @default("USD")
+  stock    Stock  @relation(fields: [ticker], references: [ticker], onDelete: Cascade)
+
+  @@index([ticker])
+  @@index([exDate])
+}
+
+model PriceHistory {
+  id     String @id @default(cuid())
+  ticker String
+  date   String
+  close  Float
+  change Float?
+  stock  Stock  @relation(fields: [ticker], references: [ticker], onDelete: Cascade)
+
+  @@index([ticker])
+  @@index([date])
+  @@unique([ticker, date])
 }
 
 model Holding {
@@ -51,21 +108,52 @@ model Holding {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stock        Stock?   @relation(fields: [ticker], references: [ticker])
 
   @@index([userId])
 }
 
 model Article {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   title       String
   category    String
-  cover       String   @default("")
+  cover       String         @default("")
   author      String
-  readCount   Int      @default(0)
-  readMinutes Int      @default(5)
+  readCount   Int            @default(0)
+  readMinutes Int            @default(5)
   excerpt     String
   content     String
-  isHero      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isHero      Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  readings    UserReading[]
+  bookmarks   UserBookmark[]
+}
+
+model UserReading {
+  id        String   @id @default(cuid())
+  userId    String
+  articleId String
+  progress  Float    @default(0)
+  completed Boolean  @default(false)
+  readAt    DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([userId])
+  @@index([articleId])
+}
+
+model UserBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  articleId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([userId])
+  @@index([articleId])
 }

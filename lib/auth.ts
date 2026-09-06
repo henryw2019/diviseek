@@ -1,7 +1,14 @@
 import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs"
 
-const JWT_SECRET = process.env.JWT_SECRET || "diviseek-secret-key-change-in-production"
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is required. Set it in .env or server environment.")
+  }
+  return secret
+}
+const JWT_SECRET = getJwtSecret()
 
 export interface JWTPayload {
   userId: string

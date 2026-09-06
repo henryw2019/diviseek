@@ -9,7 +9,7 @@ import {
   quotes,
   type Holding,
 } from "@/lib/diviseek-data"
-import { TickerBadge, formatCNY } from "./shared"
+import { TickerBadge, formatCNY, Skeleton } from "./shared"
 import type { TabKey } from "./bottom-nav"
 import { cn } from "@/lib/utils"
 import { getHoldings as fetchHoldings } from "@/lib/api"
@@ -41,13 +41,16 @@ export function DashboardScreen({
   const { currency, taxRate } = useSettings()
   const [realHoldings, setRealHoldings] = useState<Holding[]>([])
   const [summary, setSummary] = useState(mockSummary)
+  const [dataLoading, setDataLoading] = useState(false)
 
   useEffect(() => {
     if (!user) {
       setRealHoldings([])
       setSummary(mockSummary)
+      setDataLoading(false)
       return
     }
+    setDataLoading(true)
     fetchHoldings()
       .then((data) => {
         setRealHoldings(data.holdings)
@@ -57,6 +60,7 @@ export function DashboardScreen({
         setRealHoldings([])
         setSummary({ annualIncome: 0, monthlyAverage: 0, holdingsCount: 0, averageYield: 0 })
       })
+      .finally(() => setDataLoading(false))
   }, [user])
 
   const activeHoldings = user ? realHoldings : mockHoldings
@@ -68,6 +72,53 @@ export function DashboardScreen({
   const [selected, setSelected] = useState<string | null>(null)
 
   const topHoldings = [...activeHoldings].sort((a, b) => b.annualIncome - a.annualIncome).slice(0, 4)
+
+  if (dataLoading && user) {
+    return (
+      <div className="flex flex-col gap-6 px-5 pt-8">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="size-9 rounded-xl" />
+            <div className="flex flex-col gap-1.5">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+          <Skeleton className="h-6 w-20 rounded-full" />
+        </header>
+        <section className="rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent p-1">
+          <div className="rounded-[20px] border border-border-subtle bg-card/40 px-5 py-6">
+            <Skeleton className="mb-2 h-4 w-28" />
+            <Skeleton className="h-12 w-56" />
+            <div className="mt-3 flex gap-3">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </div>
+        </section>
+        <section>
+          <div className="mb-3">
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <div className="flex gap-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-12 rounded-2xl" />
+            ))}
+          </div>
+        </section>
+        <section>
+          <div className="mb-3">
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-[72px] w-full rounded-2xl" />
+            ))}
+          </div>
+        </section>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
@@ -82,14 +133,14 @@ export function DashboardScreen({
             <p className="mt-0.5 text-[11px] text-muted-foreground">DiviSeek</p>
           </div>
         </div>
-        <span className="rounded-full bg-white/5 px-3 py-1 text-[11px] text-muted-foreground">
+        <span className="rounded-full bg-surface-subtle px-3 py-1 text-[11px] text-muted-foreground">
           2026 年度
         </span>
       </header>
 
       {/* Hero income */}
       <section className="rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent p-1">
-        <div className="rounded-[20px] border border-white/5 bg-card/40 px-5 py-6">
+        <div className="rounded-[20px] border border-border-subtle bg-card/40 px-5 py-6">
           <p className="text-sm text-muted-foreground">年度股息收入</p>
           <p className="mt-1 gold-text-gradient text-5xl font-bold tracking-tight tabular-nums">
             {formatCurrency(annual, currency)}
@@ -131,8 +182,8 @@ export function DashboardScreen({
                   active
                     ? "border-primary bg-primary/10"
                     : isToday
-                      ? "border-primary/40 bg-white/[0.03]"
-                      : "border-white/5 bg-white/[0.02]",
+                      ? "border-primary/40 bg-surface-subtle/50"
+                      : "border-border-subtle bg-surface-subtle/30",
                 )}
               >
                 <span className="text-[10px] text-muted-foreground">
@@ -170,11 +221,11 @@ export function DashboardScreen({
             全部 {activeSummary.holdingsCount} 只 <ChevronRight className="size-3.5" />
           </button>
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {topHoldings.map((h) => (
             <div
               key={h.ticker}
-              className="group flex items-center gap-3 rounded-2xl border border-white/5 bg-card p-3.5 transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-black/30"
+              className="group flex items-center gap-3 rounded-2xl border border-border-subtle bg-card p-3.5 transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-black/30"
             >
               <TickerBadge ticker={h.ticker} color={h.color} className="size-11" />
               <div className="min-w-0 flex-1">
@@ -226,7 +277,7 @@ function QuoteBanner() {
   }, [])
   const q = quotes[idx]
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/5 bg-card/60">
+    <section className="overflow-hidden rounded-2xl border border-border-subtle bg-card/60">
       <div key={idx} className="animate-[marquee-up_0.5s_ease-out] border-l-2 border-primary py-3.5 pl-4 pr-4">
         <p className="text-[11px] font-medium uppercase tracking-wider text-primary/80">今日寻息金句</p>
         <p className="mt-1.5 font-serif text-[15px] leading-relaxed text-foreground text-pretty">

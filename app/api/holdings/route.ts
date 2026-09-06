@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { verifyToken } from "@/lib/auth"
-
-function extractUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get("authorization")
-  if (!authHeader?.startsWith("Bearer ")) return null
-  const token = authHeader.split(" ")[1]
-  const payload = verifyToken(token)
-  return payload?.userId || null
-}
+import { extractUserId } from "@/lib/with-auth"
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +14,18 @@ export async function GET(request: NextRequest) {
       orderBy: { annualIncome: "desc" },
     })
 
+    const tickers = [...new Set(holdings.map((h) => h.ticker))]
+    const stocks = await prisma.stock.findMany({
+      where: { ticker: { in: tickers } },
+      select: { ticker: true, price: true, dividendYield: true, divGrowth1y: true, marketCap: true, peRatio: true },
+    })
+    const stockMap = Object.fromEntries(stocks.map((s) => [s.ticker, s]))
+
+    const enriched = holdings.map((h) => ({
+      ...h,
+      stock: stockMap[h.ticker] || null,
+    }))
+
     const totalAnnual = holdings.reduce((sum, h) => sum + h.annualIncome, 0)
     const avgYield = holdings.length > 0
       ? holdings.reduce((sum, h) => sum + h.yield, 0) / holdings.length
@@ -30,7 +34,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        holdings,
+        holdings: enriched,
         summary: {
           annualIncome: totalAnnual,
           monthlyAverage: Math.round(totalAnnual / 12),
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { ticker, name, shares, yield: yieldVal, frequency, nextExDate, annualIncome, drip, color, avgCost, purchaseDate, market } = body
 
-    if (!ticker || !name || shares == null || yieldVal == null || !frequency || !nextExDate || annualIncome == null) {
+    if (!ticker || !name || shares == null || yieldVal == null || !nextExDate || annualIncome == null) {
       return NextResponse.json({ success: false, error: "缺少必填字段" }, { status: 400 })
     }
 
@@ -66,7 +70,7 @@ export async function POST(request: NextRequest) {
         name,
         shares,
         yield: yieldVal,
-        frequency,
+        frequency: frequency || "annual",
         nextExDate,
         annualIncome,
         drip: drip ?? false,

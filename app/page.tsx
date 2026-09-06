@@ -9,6 +9,7 @@ import { SchoolScreen } from "@/components/diviseek/school-screen"
 import { ProfileScreen } from "@/components/diviseek/profile-screen"
 import { AuthPrompt } from "@/components/diviseek/auth-prompt"
 import { AddHoldingScreen } from "@/components/diviseek/add-holding-screen"
+import { AchievementsScreen } from "@/components/diviseek/achievements-screen"
 import { getMe, getSettings, removeToken } from "@/lib/api"
 import { SettingsContext, defaultSettings, type AppSettings } from "@/lib/settings-context"
 
@@ -18,10 +19,21 @@ export default function Page() {
   const [loading, setLoading] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
   const [showAddHolding, setShowAddHolding] = useState(false)
+  const [showAchievements, setShowAchievements] = useState(false)
   const [addHoldingKey, setAddHoldingKey] = useState(0)
-  const [settings, setSettings] = useState<AppSettings>(defaultSettings)
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    if (typeof window === "undefined") return defaultSettings
+    const theme = document.documentElement.classList.contains("light") ? "light" : "dark"
+    return { ...defaultSettings, theme }
+  })
 
+  // Restore tab from URL when navigating back from article
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tabParam = params.get("tab") as TabKey | null
+    if (tabParam && ["home", "holdings", "calendar", "school", "profile"].includes(tabParam)) {
+      setTab(tabParam)
+    }
     getMe()
       .then((data) => {
         setUser(data.user)
@@ -33,6 +45,16 @@ export default function Page() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  // Sync tab to URL so article back-button reads it correctly
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const current = url.searchParams.get("tab")
+    if (current !== tab) {
+      url.searchParams.set("tab", tab)
+      window.history.replaceState(null, "", url.toString())
+    }
+  }, [tab])
 
   useEffect(() => {
     const root = document.documentElement
@@ -59,16 +81,7 @@ export default function Page() {
     return true
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center">
-          <p className="text-2xl font-bold text-primary">寻息</p>
-          <p className="mt-1 text-sm text-muted-foreground">加载中...</p>
-        </div>
-      </div>
-    )
-  }
+
 
   if (showAddHolding) {
     return (
@@ -84,28 +97,44 @@ export default function Page() {
     )
   }
 
+  if (showAchievements) {
+    return (
+      <SettingsContext.Provider value={settings}>
+        <div className="mx-auto w-full max-w-md md:max-w-2xl bg-background">
+          <AchievementsScreen
+            user={user}
+            onLoginRequired={() => setShowAuth(true)}
+            onBack={() => setShowAchievements(false)}
+          />
+          <AuthPrompt open={showAuth} onClose={() => setShowAuth(false)} onSuccess={setUser} />
+        </div>
+      </SettingsContext.Provider>
+    )
+  }
+
   return (
     <SettingsContext.Provider value={settings}>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-background">
+      <div className="mx-auto flex min-h-screen w-full max-w-md md:max-w-2xl flex-col bg-background">
         <main className="flex-1 pb-24">
-          {tab === "home" && <DashboardScreen user={user} onNavigate={setTab} />}
-          {tab === "holdings" && (
+          <div className={tab === "home" ? "block" : "hidden"}><DashboardScreen user={user} onNavigate={setTab} /></div>
+          <div className={tab === "holdings" ? "block" : "hidden"}>
             <HoldingsScreen
               user={user}
               requireAuth={requireAuth}
               onAddHolding={() => setShowAddHolding(true)}
             />
-          )}
-          {tab === "calendar" && <CalendarScreen user={user} />}
-          {tab === "school" && <SchoolScreen />}
-          {tab === "profile" && (
+          </div>
+          <div className={tab === "calendar" ? "block" : "hidden"}><CalendarScreen user={user} /></div>
+          <div className={tab === "school" ? "block" : "hidden"}><SchoolScreen user={user} onLoginRequired={() => setShowAuth(true)} /></div>
+          <div className={tab === "profile" ? "block" : "hidden"}>
             <ProfileScreen
               user={user}
               onLogout={user ? handleLogout : undefined}
               onLoginRequired={() => setShowAuth(true)}
               onSettingsChange={updateSettings}
+              onAchievements={() => setShowAchievements(true)}
             />
-          )}
+          </div>
         </main>
         <BottomNav active={tab} onChange={setTab} />
         <AuthPrompt open={showAuth} onClose={() => setShowAuth(false)} onSuccess={setUser} />

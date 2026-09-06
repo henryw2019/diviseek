@@ -1,17 +1,23 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Geist } from 'next/font/google'
-import { Noto_Serif_SC } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 
-const geist = Geist({
-  subsets: ['latin'],
+const geist = localFont({
+  src: [
+    { path: './fonts/geist-latin-400.woff2', weight: '400' },
+    { path: './fonts/geist-latin-500.woff2', weight: '500' },
+    { path: './fonts/geist-latin-600.woff2', weight: '600' },
+    { path: './fonts/geist-latin-700.woff2', weight: '700' },
+  ],
   variable: '--font-geist',
 })
 
-const notoSerif = Noto_Serif_SC({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
+const notoSerif = localFont({
+  src: [
+    { path: './fonts/noto-serif-latin-400.woff2', weight: '400' },
+    { path: './fonts/noto-serif-latin-600.woff2', weight: '600' },
+    { path: './fonts/noto-serif-latin-700.woff2', weight: '700' },
+  ],
   variable: '--font-noto-serif',
 })
 
@@ -37,7 +43,6 @@ export default function RootLayout({
     <html lang="zh-CN" className={`${geist.variable} ${notoSerif.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

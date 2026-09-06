@@ -16,26 +16,32 @@ import {
   Compass,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getSettings, updateSettings } from "@/lib/api"
+import { getSettings, updateSettings, getReadingStats } from "@/lib/api"
 
 export function ProfileScreen({
   user,
   onLogout,
   onLoginRequired,
   onSettingsChange,
+  onAchievements,
 }: {
   user?: { id: string; phone: string; nickname?: string | null }
   onLogout?: () => void
   onLoginRequired?: () => void
   onSettingsChange?: (patch: Record<string, any>) => void
+  onAchievements?: () => void
 }) {
   const [settings, setSettings] = useState<any>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [stats, setStats] = useState<{ totalMinutes: number; totalArticles: number; streak: number } | null>(null)
 
   useEffect(() => {
     if (!user) return
     getSettings()
       .then((data) => setSettings(data.settings))
+      .catch(() => {})
+    getReadingStats()
+      .then((data) => setStats({ totalMinutes: data.totalMinutes, totalArticles: data.totalArticles, streak: data.streak }))
       .catch(() => {})
   }, [user])
 
@@ -80,7 +86,7 @@ export function ProfileScreen({
   return (
     <div className="min-h-screen px-5 pt-8 pb-6">
       {toast && (
-        <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full bg-card px-4 py-2 text-sm text-foreground shadow-lg border border-white/10 animate-[marquee-up_0.2s_ease-out]">
+        <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full bg-card px-4 py-2 text-sm text-foreground shadow-lg border border-border-subtle animate-[marquee-up_0.2s_ease-out]">
           {toast}
         </div>
       )}
@@ -105,15 +111,20 @@ export function ProfileScreen({
         )}
       </header>
 
-      <section className="mt-6 rounded-3xl border border-white/5 bg-card p-5">
+      <section className="mt-6 rounded-3xl border border-border-subtle bg-card p-5">
         <div className="grid grid-cols-3 gap-2 text-center">
-          <ReadStat icon={BookOpen} value="0" unit="小时" label="累计阅读" />
-          <ReadStat icon={Bookmark} value="0" unit="篇" label="收藏" />
-          <ReadStat icon={Flame} value="0" unit="天" label="连续打卡" />
+          <ReadStat icon={BookOpen} value={stats ? String(Math.round(stats.totalMinutes / 60 * 10) / 10) : "0"} unit="小时" label="累计阅读" />
+          <ReadStat icon={Bookmark} value={stats ? String(stats.totalArticles) : "0"} unit="篇" label="已读文章" />
+          <ReadStat icon={Flame} value={stats ? String(stats.streak) : "0"} unit="天" label="连续打卡" />
         </div>
-        <button className="mt-4 flex w-full items-center justify-center gap-1 rounded-full bg-primary/10 py-2.5 text-sm font-medium text-primary opacity-50 cursor-not-allowed">
-          查看寻息成就 <ArrowRight className="size-4" />
-        </button>
+        {onAchievements && (
+          <button
+            onClick={onAchievements}
+            className="mt-4 flex w-full items-center justify-center gap-1 rounded-full bg-primary/10 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/15"
+          >
+            查看寻息成就 <ArrowRight className="size-4" />
+          </button>
+        )}
       </section>
 
       <Section title="通知设置" icon={Bell}>
@@ -137,11 +148,11 @@ export function ProfileScreen({
       <Section title="数据导出" icon={Download}>
         <button
           onClick={() => showToast("即将上线")}
-          className="flex w-full items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left last:border-b-0"
+          className="flex w-full items-center gap-3 border-b border-border-subtle px-4 py-3.5 text-left last:border-b-0"
         >
           <FileText className="size-5 text-muted-foreground" />
           <span className="flex-1 text-sm">年度股息报告</span>
-          <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-muted-foreground">PDF</span>
+          <span className="rounded bg-surface-subtle px-1.5 py-0.5 text-[10px] text-muted-foreground">PDF</span>
           <Download className="size-4 text-primary" />
         </button>
         <button
@@ -150,7 +161,7 @@ export function ProfileScreen({
         >
           <FileSpreadsheet className="size-5 text-muted-foreground" />
           <span className="flex-1 text-sm">持仓数据备份</span>
-          <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-muted-foreground">CSV</span>
+          <span className="rounded bg-surface-subtle px-1.5 py-0.5 text-[10px] text-muted-foreground">CSV</span>
           <Download className="size-4 text-primary" />
         </button>
       </Section>
@@ -220,7 +231,7 @@ function Section({
         <Icon className="size-4 text-primary" />
         {title}
       </h2>
-      <div className="overflow-hidden rounded-2xl border border-white/5 bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border-subtle bg-card">
         {children}
       </div>
     </section>
@@ -229,18 +240,18 @@ function Section({
 
 function ToggleRow({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
   return (
-    <div className="flex items-center justify-between border-b border-white/5 px-4 py-3.5 last:border-b-0">
+    <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3.5 last:border-b-0">
       <span className="text-sm">{label}</span>
       <button
         role="switch"
         aria-checked={on}
         aria-label={label}
         onClick={onToggle}
-        className={cn("relative h-6 w-11 rounded-full transition-colors", on ? "bg-primary" : "bg-white/15")}
+        className={cn("relative h-6 w-11 rounded-full border transition-colors", on ? "border-primary bg-primary" : "border-border-subtle bg-toggle-off")}
       >
         <span
           className={cn(
-            "absolute top-0.5 size-5 rounded-full bg-white transition-all",
+            "absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-all",
             on ? "left-[22px]" : "left-0.5",
           )}
         />
@@ -253,7 +264,7 @@ function NavRow({ label, value, onClick }: { label: string; value?: string; onCl
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center justify-between border-b border-white/5 px-4 py-3.5 text-left last:border-b-0"
+      className="flex w-full items-center justify-between border-b border-border-subtle px-4 py-3.5 text-left last:border-b-0"
     >
       <span className="text-sm">{label}</span>
       <span className="flex items-center gap-1.5">

@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { verifyToken } from "@/lib/auth"
-
-function extractUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get("authorization")
-  if (!authHeader?.startsWith("Bearer ")) return null
-  const token = authHeader.split(" ")[1]
-  const payload = verifyToken(token)
-  return payload?.userId || null
-}
+import { extractUserId } from "@/lib/with-auth"
 
 export async function GET(
   request: NextRequest,

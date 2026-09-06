@@ -40,14 +40,14 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f172a] px-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm">
         <div className="mb-10 text-center">
           <p className="text-3xl font-bold text-amber-500">寻息</p>
           <p className="mt-1 text-sm text-slate-400">DiviSeek</p>
         </div>
 
-        <h1 className="mb-6 text-center text-xl font-semibold text-white">
+        <h1 className="mb-6 text-center text-xl font-semibold text-foreground">
           {mode === "login" ? "登录" : "注册"}
         </h1>
 
@@ -58,7 +58,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             maxLength={11}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 outline-none transition-colors focus:border-amber-500/50 focus:bg-white/[0.07]"
+            className="w-full rounded-xl border border-border-subtle bg-surface-subtle px-4 py-3 text-foreground placeholder-slate-500 outline-none transition-colors focus:border-amber-500/50 focus:bg-surface-hover"
           />
 
           <input
@@ -66,7 +66,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
             placeholder="请输入密码（至少6位）"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 outline-none transition-colors focus:border-amber-500/50 focus:bg-white/[0.07]"
+            className="w-full rounded-xl border border-border-subtle bg-surface-subtle px-4 py-3 text-foreground placeholder-slate-500 outline-none transition-colors focus:border-amber-500/50 focus:bg-surface-hover"
           />
 
           {mode === "register" && (
@@ -75,7 +75,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
               placeholder="昵称（可选）"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 outline-none transition-colors focus:border-amber-500/50 focus:bg-white/[0.07]"
+              className="w-full rounded-xl border border-border-subtle bg-surface-subtle px-4 py-3 text-foreground placeholder-slate-500 outline-none transition-colors focus:border-amber-500/50 focus:bg-surface-hover"
             />
           )}
 

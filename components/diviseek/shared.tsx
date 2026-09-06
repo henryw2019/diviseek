@@ -55,6 +55,10 @@ export function useCountUp(target: number, duration = 1100) {
   return value
 }
 
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-md bg-surface-2", className)} />
+}
+
 export function ProgressRing({
   progress,
   size = 52,
