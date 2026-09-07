@@ -10,6 +10,7 @@ import { ProfileScreen } from "@/components/diviseek/profile-screen"
 import { AuthPrompt } from "@/components/diviseek/auth-prompt"
 import { AddHoldingScreen } from "@/components/diviseek/add-holding-screen"
 import { AchievementsScreen } from "@/components/diviseek/achievements-screen"
+import { AboutScreen } from "@/components/diviseek/about-screen"
 import { getMe, getSettings, removeToken } from "@/lib/api"
 import { SettingsContext, defaultSettings, type AppSettings } from "@/lib/settings-context"
 
@@ -20,6 +21,7 @@ export default function Page() {
   const [showAuth, setShowAuth] = useState(false)
   const [showAddHolding, setShowAddHolding] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
   const [addHoldingKey, setAddHoldingKey] = useState(0)
   const [settings, setSettings] = useState<AppSettings>(() => {
     if (typeof window === "undefined") return defaultSettings
@@ -112,6 +114,17 @@ export default function Page() {
     )
   }
 
+  if (showAbout) {
+    return (
+      <SettingsContext.Provider value={settings}>
+        <div className="mx-auto w-full max-w-md md:max-w-2xl bg-background">
+          <AboutScreen onBack={() => setShowAbout(false)} />
+          <AuthPrompt open={showAuth} onClose={() => setShowAuth(false)} onSuccess={setUser} />
+        </div>
+      </SettingsContext.Provider>
+    )
+  }
+
   return (
     <SettingsContext.Provider value={settings}>
       <div className="mx-auto flex min-h-screen w-full max-w-md md:max-w-2xl flex-col bg-background">
@@ -133,6 +146,7 @@ export default function Page() {
               onLoginRequired={() => setShowAuth(true)}
               onSettingsChange={updateSettings}
               onAchievements={() => setShowAchievements(true)}
+              onAbout={() => setShowAbout(true)}
             />
           </div>
         </main>

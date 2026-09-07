@@ -18,18 +18,22 @@ import {
 import { cn } from "@/lib/utils"
 import { getSettings, updateSettings, getReadingStats } from "@/lib/api"
 
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "v1.0.0"
+
 export function ProfileScreen({
   user,
   onLogout,
   onLoginRequired,
   onSettingsChange,
   onAchievements,
+  onAbout,
 }: {
   user?: { id: string; phone: string; nickname?: string | null }
   onLogout?: () => void
   onLoginRequired?: () => void
   onSettingsChange?: (patch: Record<string, any>) => void
   onAchievements?: () => void
+  onAbout?: () => void
 }) {
   const [settings, setSettings] = useState<any>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -179,7 +183,13 @@ export function ProfileScreen({
         <NavRow label="意见反馈" onClick={() => showToast("感谢您的反馈，功能即将上线")} />
       </Section>
 
-      <p className="mt-6 text-center text-xs text-muted-foreground">DiviSeek 寻息 · v1.0.0</p>
+      {onAbout && (
+        <Section title="关于" icon={CircleHelp}>
+          <NavRow label="应用版本" value={APP_VERSION} onClick={onAbout} />
+        </Section>
+      )}
+
+      <p className="mt-6 text-center text-xs text-muted-foreground">DiviSeek 寻息 · {APP_VERSION}</p>
 
       {onLogout && (
         <button
