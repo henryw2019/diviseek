@@ -13,10 +13,17 @@ function isMondayUTC(now: Date): boolean {
 }
 
 async function auth(req: NextRequest): Promise<{ ok: boolean; error?: string }> {
-  const secret = process.env.SYNC_SECRET
-  if (!secret) return { ok: false, error: "SYNC_SECRET not configured" }
-  if (req.headers.get("authorization") !== `Bearer ${secret}`)
-    return { ok: false, error: "unauthorized" }
+  // Vercel Cron 触发时自动携带 `Authorization: Bearer $CRON_SECRET`（系统注入）；
+  // SYNC_SECRET 用于手动触发（curl）兼容。任一匹配即通过。
+  const cronSecret = process.env.CRON_SECRET
+  const syncSecret = process.env.SYNC_SECRET
+  if (!cronSecret && !syncSecret)
+    return { ok: false, error: "SYNC_SECRET not configured" }
+  const authHeader = req.headers.get("authorization")
+  const valid =
+    (cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+    (syncSecret && authHeader === `Bearer ${syncSecret}`)
+  if (!valid) return { ok: false, error: "unauthorized" }
   return { ok: true }
 }
 
